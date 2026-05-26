@@ -19,7 +19,7 @@ COOLDOWN_WARNINGS_TEXT = ["Cooldown warning: Last day of cooldown"]
 INDICATOR_CHANGE_TITLE = "Some Indicators changed"
 assert len(COOLDOWN_WARNINGS) == len(COOLDOWN_WARNINGS_TEXT), "COOLDOWN_WARNINGS and COOLDOWN_WARNINGS_TEXT must have the same length"
 
-# ********************************** END SPY TIPS COOL STRATEGY **********************************
+# ********************************** END LETSGO cooldown STRATEGY **********************************
 
 
 
