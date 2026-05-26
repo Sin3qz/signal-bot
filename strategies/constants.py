@@ -1,6 +1,6 @@
 # STRATEGY PARAMETERS
 
-# ********************************** SPY TIPS COOL STRATEGY **********************************
+# ********************************** LETSGO cooldown STRATEGY **********************************
 SPY_SMA = 150
 TIPS_SMA = 200
 COOLDOWN_DAYS = 15
