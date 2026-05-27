@@ -24,7 +24,6 @@ def _download_history(ticker):
 
 def _prepare_close(df):
     date_level_str = pd.Index([str(x) for x in df.index.get_level_values("date")])
-
     colon_mask = date_level_str.str.contains(":")
 
     df.index = pd.to_datetime(
@@ -38,50 +37,60 @@ def _prepare_close(df):
 
 
 def _diff_to_sma(close, sma_window):
-
     sma_rolling = close.rolling(window=sma_window).mean()
-
     diff = (close - sma_rolling) / sma_rolling
 
     return sma_rolling, diff
 
 
+def _build_message(
+    current_position,
+    cooldown,
+    spy_diff,
+    tips_diff,
+    gold_diff,
+    usd_info_available,
+    spy_usd_diff,
+    tips_usd_diff
+):
+    text = (
+        f"Currently in: {current_position} "
+        f"({cooldown} cooldown days remaining)\n\n"
+    )
+
+    text += f"SPY EUR-hedged:  {spy_diff.iloc[-1]:+.2%}\n"
+    text += f"TIPS EUR-hedged: {tips_diff.iloc[-1]:+.2%}\n"
+    text += f"GOLD:             {gold_diff.iloc[-1]:+.2%}\n"
+
+    if usd_info_available:
+        text += "\nUSD-based signals:\n"
+        text += f"SPY USD:          {spy_usd_diff.iloc[-1]:+.2%}\n"
+        text += f"TIPS USD:         {tips_usd_diff.iloc[-1]:+.2%}\n"
+
+    return text
+
+
 def spy_tips_cool():
-
     for i in range(TRY_COUNT):
-
         try:
-
             spy_eur = _download_history(SPY_EUR_TICKER)
-
             tips_eur = _download_history(TIPS_EUR_TICKER)
-
             gold = _download_history(GOLD_TICKER)
 
             spy_usd = _download_history(SPY_USD_TICKER)
-
             tips_usd = _download_history(TIPS_USD_TICKER)
 
         except Exception as e:
-
             print(f"({i + 1}/{TRY_COUNT}) Failed to download data from Yahoo Finance: {e}")
-
             time.sleep(2)
-
             continue
 
         if spy_eur.empty or tips_eur.empty or gold.empty:
-
             print(f"({i + 1}/{TRY_COUNT}) Failed to download EUR-hedged signal data.")
-
             time.sleep(2)
-
         else:
-
             break
-
     else:
-
         return (
             "Error",
             "Failed to download data from Yahoo Finance after multiple attempts.",
@@ -89,41 +98,25 @@ def spy_tips_cool():
         )
 
     spy_close = _prepare_close(spy_eur)
-
     tips_close = _prepare_close(tips_eur)
-
     gold_close = _prepare_close(gold)
 
     spy_sma_rolling, spy_diff = _diff_to_sma(spy_close, SPY_SMA)
-
     tips_sma_rolling, tips_diff = _diff_to_sma(tips_close, TIPS_SMA)
-
     gold_sma_rolling, gold_diff = _diff_to_sma(gold_close, SPY_SMA)
 
     try:
-
         spy_usd_close = _prepare_close(spy_usd)
-
         tips_usd_close = _prepare_close(tips_usd)
 
-        spy_usd_sma_rolling, spy_usd_diff = _diff_to_sma(
-            spy_usd_close,
-            SPY_SMA
-        )
-
-        tips_usd_sma_rolling, tips_usd_diff = _diff_to_sma(
-            tips_usd_close,
-            TIPS_SMA
-        )
+        _, spy_usd_diff = _diff_to_sma(spy_usd_close, SPY_SMA)
+        _, tips_usd_diff = _diff_to_sma(tips_usd_close, TIPS_SMA)
 
         usd_info_available = True
 
     except Exception:
-
         usd_info_available = False
-
         spy_usd_diff = None
-
         tips_usd_diff = None
 
     fileName = (
@@ -141,18 +134,9 @@ def spy_tips_cool():
     last_entry = None
 
     if not os.path.exists(fileName):
-
         consecutive_days = 1
 
-        for i in range(
-            2,
-            min(
-                len(spy_diff),
-                len(tips_diff),
-                len(gold_diff)
-            )
-        ):
-
+        for i in range(2, min(len(spy_diff), len(tips_diff), len(gold_diff))):
             previous_signal = (
                 spy_diff.iloc[-i] > 0
                 and tips_diff.iloc[-i] > 0
@@ -164,170 +148,133 @@ def spy_tips_cool():
             )
 
             if previous_signal == current_signal:
-
                 consecutive_days += 1
-
             else:
-
                 consecutive_days = 1
 
             if consecutive_days >= COOLDOWN_DAYS:
-
                 break
-
         else:
-
             print("Could not find a continuous sequence of cooldown days.")
-
             return (
                 "Error",
                 "Could not find a continuous sequence of cooldown days.",
                 "This happens if the data is not sufficient or the cooldown days are too high."
             )
 
-        f = open(fileName, "w")
+        with open(fileName, "w") as f:
+            indicator = None
+            cooldown = 0
 
-        indicator = None
+            for j in range(i, 0, -1):
+                if (
+                    np.isnan(spy_diff.iloc[-j])
+                    or np.isnan(tips_diff.iloc[-j])
+                    or np.isnan(gold_diff.iloc[-j])
+                ):
+                    return (
+                        "Error",
+                        None,
+                        "SMA calculation failed, please try again later. Some indicators are NaN."
+                    )
 
-        cooldown = 0
+                spy_signal = BUY if spy_diff.iloc[-j] > 0 else SELL
+                tips_signal = BUY if tips_diff.iloc[-j] > 0 else SELL
+                gold_signal = BUY if gold_diff.iloc[-j] > 0 else SELL
 
-        for j in range(i, 0, -1):
-
-            if (
-                np.isnan(spy_diff.iloc[-j])
-                or np.isnan(tips_diff.iloc[-j])
-                or np.isnan(gold_diff.iloc[-j])
-            ):
-
-                return (
-                    "Error",
-                    None,
-                    "SMA calculation failed, please try again later. Some indicators are NaN."
+                total_indicator = (
+                    BUY
+                    if spy_signal == BUY and tips_signal == BUY
+                    else SELL
                 )
 
-            spy_signal = BUY if spy_diff.iloc[-j] > 0 else SELL
+                if cooldown > 0:
+                    cooldown -= 1
 
-            tips_signal = BUY if tips_diff.iloc[-j] > 0 else SELL
+                if total_indicator == BUY and cooldown == 0:
+                    if indicator == SELL:
+                        cooldown = COOLDOWN_DAYS
 
-            gold_signal = BUY if gold_diff.iloc[-j] > 0 else SELL
+                    indicator = BUY
 
-            total_indicator = (
-                BUY
-                if spy_signal == BUY and tips_signal == BUY
-                else SELL
-            )
+                elif cooldown == 0:
+                    if indicator == BUY:
+                        cooldown = COOLDOWN_DAYS
 
-            if cooldown > 0:
+                    indicator = SELL
 
-                cooldown -= 1
-
-            if total_indicator == BUY and cooldown == 0:
-
-                if indicator == SELL:
-
-                    cooldown = COOLDOWN_DAYS
-
-                indicator = BUY
-
-            elif cooldown == 0:
-
-                if indicator == BUY:
-
-                    cooldown = COOLDOWN_DAYS
-
-                indicator = SELL
-
-            allocation = (
-                "GOLD"
-                if tips_signal == SELL and gold_signal == BUY
-                else (
-                    "MARKET"
-                    if indicator == BUY
-                    else "CASH"
+                allocation = (
+                    "GOLD"
+                    if tips_signal == SELL and gold_signal == BUY
+                    else (
+                        "MARKET"
+                        if indicator == BUY
+                        else "CASH"
+                    )
                 )
-            )
 
-            f.write(
-                f"{spy_close.index[-j]},"
-                f"{spy_close.iloc[-j]},"
-                f"{tips_close.iloc[-j]},"
-                f"{spy_sma_rolling.iloc[-j]},"
-                f"{tips_sma_rolling.iloc[-j]},"
-                f"{indicator == BUY},"
-                f"{cooldown},"
-                f"{gold_close.iloc[-j]},"
-                f"{gold_sma_rolling.iloc[-j]},"
-                f"{allocation}\n"
-            )
-
-            if cooldown > 0:
-
-                cooldown -= 1
-
-        f.close()
+                f.write(
+                    f"{spy_close.index[-j]},"
+                    f"{spy_close.iloc[-j]},"
+                    f"{tips_close.iloc[-j]},"
+                    f"{spy_sma_rolling.iloc[-j]},"
+                    f"{tips_sma_rolling.iloc[-j]},"
+                    f"{indicator == BUY},"
+                    f"{cooldown},"
+                    f"{gold_close.iloc[-j]},"
+                    f"{gold_sma_rolling.iloc[-j]},"
+                    f"{allocation}\n"
+                )
 
     else:
-
-        f = open(fileName, "r")
-
-        file_c = f.readlines()
-
-        f.close()
+        with open(fileName, "r") as f:
+            file_c = f.readlines()
 
         last_entry = file_c[-1].split(",")
 
-       if last_entry[0] == str(spy_close.index[-1]):
+        if last_entry[0] == str(spy_close.index[-1]):
+            print("Already checked today")
 
-    print("Already checked today")
+            last_entry_parsed = (
+                [last_entry[0]]
+                + [float(x) for x in last_entry[1:5]]
+                + [last_entry[5] == "True", int(last_entry[6])]
+                + [float(last_entry[7]), float(last_entry[8]), last_entry[9].strip()]
+            )
 
-    last_entry_parsed = (
-        [last_entry[0]]
-        + [float(x) for x in last_entry[1:5]]
-        + [last_entry[5] == "True", int(last_entry[6])]
-        + [float(last_entry[7]), float(last_entry[8]), last_entry[9].strip()]
-    )
+            current_position = "Market" if last_entry_parsed[5] else "Cash"
 
-    current_position = "Market" if last_entry_parsed[5] else "Cash"
+            if last_entry_parsed[9] == "GOLD":
+                current_position = "Gold"
 
-    if last_entry_parsed[9] == "GOLD":
-        current_position = "Gold"
+            text = _build_message(
+                current_position=current_position,
+                cooldown=last_entry_parsed[6],
+                spy_diff=spy_diff,
+                tips_diff=tips_diff,
+                gold_diff=gold_diff,
+                usd_info_available=usd_info_available,
+                spy_usd_diff=spy_usd_diff,
+                tips_usd_diff=tips_usd_diff
+            )
 
-    text = (
-        f"Currently in: {current_position} "
-        f"({last_entry_parsed[6]} cooldown days remaining)\n\n"
-    )
-
-    text += f"SPY EUR-hedged:  {spy_diff.iloc[-1]:+.2%}\n"
-    text += f"TIPS EUR-hedged: {tips_diff.iloc[-1]:+.2%}\n"
-    text += f"GOLD:             {gold_diff.iloc[-1]:+.2%}\n"
-
-    if usd_info_available:
-        text += "\nUSD-based signals:\n"
-        text += f"SPY USD:          {spy_usd_diff.iloc[-1]:+.2%}\n"
-        text += f"TIPS USD:         {tips_usd_diff.iloc[-1]:+.2%}\n"
-
-    return "Daily Notification", None, text
+            return "Daily Notification", None, text
 
         last_date = pd.to_datetime(last_entry[0])
-
         last_index = spy_close.index.get_loc(last_date)
-
         last_rev_index = last_index - len(spy_close)
 
         cooldown = int(last_entry[6])
-
         indicator = BUY if last_entry[5] == "True" else SELL
 
         assert last_rev_index < -1
 
         for j in range(last_rev_index + 1, 0):
-
             if (
                 np.isnan(spy_diff.iloc[j])
                 or np.isnan(tips_diff.iloc[j])
                 or np.isnan(gold_diff.iloc[j])
             ):
-
                 return (
                     "Error",
                     None,
@@ -335,9 +282,7 @@ def spy_tips_cool():
                 )
 
             spy_signal = BUY if spy_diff.iloc[j] > 0 else SELL
-
             tips_signal = BUY if tips_diff.iloc[j] > 0 else SELL
-
             gold_signal = BUY if gold_diff.iloc[j] > 0 else SELL
 
             total_indicator = (
@@ -347,21 +292,16 @@ def spy_tips_cool():
             )
 
             if cooldown > 0:
-
                 cooldown -= 1
 
             if total_indicator == BUY and cooldown == 0:
-
                 if indicator == SELL:
-
                     cooldown = COOLDOWN_DAYS
 
                 indicator = BUY
 
             elif cooldown == 0:
-
                 if indicator == BUY:
-
                     cooldown = COOLDOWN_DAYS
 
                 indicator = SELL
@@ -376,28 +316,22 @@ def spy_tips_cool():
                 )
             )
 
-            f = open(fileName, "a")
+            with open(fileName, "a") as f:
+                f.write(
+                    f"{spy_close.index[j]},"
+                    f"{spy_close.iloc[j]},"
+                    f"{tips_close.iloc[j]},"
+                    f"{spy_sma_rolling.iloc[j]},"
+                    f"{tips_sma_rolling.iloc[j]},"
+                    f"{indicator == BUY},"
+                    f"{cooldown},"
+                    f"{gold_close.iloc[j]},"
+                    f"{gold_sma_rolling.iloc[j]},"
+                    f"{allocation}\n"
+                )
 
-            f.write(
-                f"{spy_close.index[j]},"
-                f"{spy_close.iloc[j]},"
-                f"{tips_close.iloc[j]},"
-                f"{spy_sma_rolling.iloc[j]},"
-                f"{tips_sma_rolling.iloc[j]},"
-                f"{indicator == BUY},"
-                f"{cooldown},"
-                f"{gold_close.iloc[j]},"
-                f"{gold_sma_rolling.iloc[j]},"
-                f"{allocation}\n"
-            )
-
-            f.close()
-
-    f = open(fileName, "r")
-
-    file_c = f.readlines()
-
-    f.close()
+    with open(fileName, "r") as f:
+        file_c = f.readlines()
 
     new_entry = file_c[-1].split(",")
 
@@ -409,9 +343,7 @@ def spy_tips_cool():
     )
 
     spy_indicator = BUY if new_entry[1] > new_entry[3] else SELL
-
     tips_indicator = BUY if new_entry[2] > new_entry[4] else SELL
-
     gold_indicator = BUY if new_entry[7] > new_entry[8] else SELL
 
     total_indicator = (
@@ -422,26 +354,21 @@ def spy_tips_cool():
 
     allocation = new_entry[9]
 
-    current_position = (
-        "Market"
-        if new_entry[5]
-        else "Cash"
-    )
+    current_position = "Market" if new_entry[5] else "Cash"
 
     if allocation == "GOLD":
-
         current_position = "Gold"
 
     if last_entry is None:
-
         subject = (
             "GO LONG NOW"
             if new_entry[5]
             else "GO IN CASH NOW"
         )
 
-    else:
+        subject2 = ""
 
+    else:
         last_entry = (
             [last_entry[0]]
             + [float(x) for x in last_entry[1:5]]
@@ -449,49 +376,53 @@ def spy_tips_cool():
             + [float(last_entry[7]), float(last_entry[8]), last_entry[9].strip()]
         )
 
+        last_spy_indicator = BUY if last_entry[1] > last_entry[3] else SELL
+        last_tips_indicator = BUY if last_entry[2] > last_entry[4] else SELL
+        last_gold_indicator = BUY if last_entry[7] > last_entry[8] else SELL
+
+        last_indicator = (
+            BUY
+            if last_spy_indicator == BUY and last_tips_indicator == BUY
+            else SELL
+        )
+
         subject = ""
+        subject2 = ""
 
         if new_entry[5] and not last_entry[5]:
-
             subject = "GO LONG NOW"
 
         elif not new_entry[5] and last_entry[5]:
-
             subject = "GO IN CASH NOW"
 
         else:
-
             for i in COOLDOWN_WARNINGS:
-
                 if new_entry[6] <= i and last_entry[6] > i:
-
                     subject = COOLDOWN_WARNINGS_TEXT[
                         COOLDOWN_WARNINGS.index(i)
                     ]
 
-    subject2 = ""
+        if (
+            spy_indicator != last_spy_indicator
+            or tips_indicator != last_tips_indicator
+            or gold_indicator != last_gold_indicator
+            or allocation != last_entry[9]
+            or total_indicator != last_indicator
+        ):
+            subject2 = INDICATOR_CHANGE_TITLE
 
-    text = (
-        f"Currently in: {current_position} "
-        f"({new_entry[6]} cooldown days remaining)\n\n"
+    text = _build_message(
+        current_position=current_position,
+        cooldown=new_entry[6],
+        spy_diff=spy_diff,
+        tips_diff=tips_diff,
+        gold_diff=gold_diff,
+        usd_info_available=usd_info_available,
+        spy_usd_diff=spy_usd_diff,
+        tips_usd_diff=tips_usd_diff
     )
 
-    text += f"SPY EUR-hedged:  {spy_diff.iloc[-1]:+.2%}\n"
-
-    text += f"TIPS EUR-hedged: {tips_diff.iloc[-1]:+.2%}\n"
-
-    text += f"GOLD:             {gold_diff.iloc[-1]:+.2%}\n"
-
-    if usd_info_available:
-
-        text += "\nUSD-based signals:\n"
-
-        text += f"SPY USD:          {spy_usd_diff.iloc[-1]:+.2%}\n"
-
-        text += f"TIPS USD:         {tips_usd_diff.iloc[-1]:+.2%}\n"
-
     if DAILY_NOTIFICATION and subject == "" and subject2 == "":
-
         subject = "Daily Notification"
 
     return subject, subject2, text
