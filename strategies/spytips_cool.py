@@ -276,11 +276,37 @@ def spy_tips_cool():
 
         last_entry = file_c[-1].split(",")
 
-        if last_entry[0] == str(spy_close.index[-1]):
+       if last_entry[0] == str(spy_close.index[-1]):
 
-            print("Already checked today")
+    print("Already checked today")
 
-            return None, None, None
+    last_entry_parsed = (
+        [last_entry[0]]
+        + [float(x) for x in last_entry[1:5]]
+        + [last_entry[5] == "True", int(last_entry[6])]
+        + [float(last_entry[7]), float(last_entry[8]), last_entry[9].strip()]
+    )
+
+    current_position = "Market" if last_entry_parsed[5] else "Cash"
+
+    if last_entry_parsed[9] == "GOLD":
+        current_position = "Gold"
+
+    text = (
+        f"Currently in: {current_position} "
+        f"({last_entry_parsed[6]} cooldown days remaining)\n\n"
+    )
+
+    text += f"SPY EUR-hedged:  {spy_diff.iloc[-1]:+.2%}\n"
+    text += f"TIPS EUR-hedged: {tips_diff.iloc[-1]:+.2%}\n"
+    text += f"GOLD:             {gold_diff.iloc[-1]:+.2%}\n"
+
+    if usd_info_available:
+        text += "\nUSD-based signals:\n"
+        text += f"SPY USD:          {spy_usd_diff.iloc[-1]:+.2%}\n"
+        text += f"TIPS USD:         {tips_usd_diff.iloc[-1]:+.2%}\n"
+
+    return "Daily Notification", None, text
 
         last_date = pd.to_datetime(last_entry[0])
 
