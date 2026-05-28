@@ -1,8 +1,7 @@
-name: Check Indicators for SPYTIPS COOL STRATEGY
+name: LETSGO cooldown
 
 on:
   schedule:
-    # SELECT DAILY RUN TIME (UTC)
     - cron: "0 0 * * *"
   workflow_dispatch:
 
@@ -12,48 +11,55 @@ permissions:
 jobs:
   notify:
     runs-on: ubuntu-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v3
 
-      - name: Set up Python
-        uses: actions/setup-python@v4
+    env:
+      DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
 
       - name: Install dependencies
         run: |
-          python -m pip install --upgrade pip
-          pip install yahooquery pandas yfinance
+          pip install -r requirements.txt
 
-      - name: run script
+      - name: Run bot
         run: |
+          rm -f message.txt
           python3 main.py
 
-      - name: Read content from file
-        id: read_file
+      - name: Send Discord notification
         run: |
-          if [[ -f message.txt ]]; then
-            CONTENT=$(cat message.txt | sed ':a;N;$!ba;s/\n/\\n/g')
-            echo "CONTENT=$CONTENT" >> $GITHUB_ENV
-          else
-            echo "File message.txt not found. No changes to commit."
+          if [ ! -f message.txt ]; then
+            echo "No message.txt found. Nothing to send."
             exit 0
           fi
 
-      - name: Send notification to Discord
-        env:
-          CONTENT: ${{ env.CONTENT }}
-          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
-        run: |
-          curl -X POST -H "Content-Type: application/json" \
-          -d "{\"content\": \"${CONTENT}\"}" \
-          $DISCORD_WEBHOOK_URL
-      
-      - name: Push changes
+          MESSAGE=$(cat message.txt)
+
+          if [ -z "$MESSAGE" ]; then
+            echo "message.txt is empty. Nothing to send."
+            exit 0
+          fi
+
+          jq -n --arg content "$MESSAGE" '{content: $content}' > payload.json
+
+          curl -X POST \
+            -H "Content-Type: application/json" \
+            -d @payload.json \
+            "$DISCORD_WEBHOOK"
+
+      - name: Commit and push changes
         run: |
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
-          git add history*.txt
-          git commit -m "Update current indicator data [ci skip]" || exit 0
-          git push origin main || git push origin main --set-upstream
+
+          git pull --rebase origin main
+
+          git add .
+          git commit -m "Update current indicator data [ci skip]" || echo "No changes to commit"
+
+          git push origin main
