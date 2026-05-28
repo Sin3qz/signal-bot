@@ -13,7 +13,7 @@ jobs:
     runs-on: ubuntu-latest
 
     env:
-      DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
+      GTAA_WEBHOOK: ${{ secrets.GTAA_WEBHOOK }}
 
     steps:
       - uses: actions/checkout@v4
@@ -33,6 +33,11 @@ jobs:
 
       - name: Send Discord notification
         run: |
+          if [ -z "$GTAA_WEBHOOK" ]; then
+            echo "GTAA_WEBHOOK secret is missing or empty."
+            exit 1
+          fi
+
           if [ ! -f message.txt ]; then
             echo "No message.txt found. Nothing to send."
             exit 0
@@ -50,7 +55,7 @@ jobs:
           curl -X POST \
             -H "Content-Type: application/json" \
             -d @payload.json \
-            "$DISCORD_WEBHOOK"
+            "$GTAA_WEBHOOK"
 
       - name: Commit and push changes
         run: |
