@@ -38,6 +38,11 @@ def _prepare_close(df):
     close = close[~close.index.duplicated(keep="last")]
     close = close.sort_index()
 
+    berlin_today = pd.Timestamp.now(tz="Europe/Berlin").date()
+    berlin_yesterday = berlin_today - pd.Timedelta(days=1)
+
+    close = close[close.index.date <= berlin_yesterday]
+
     return close
 
 
