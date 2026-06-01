@@ -89,6 +89,34 @@ def _build_message(
     return text
 
 
+def _parse_history_entry(entry):
+    return (
+        [entry[0]]
+        + [float(x) for x in entry[1:5]]
+        + [entry[5] == "True", int(entry[6])]
+        + [float(entry[7]), float(entry[8]), entry[9].strip()]
+    )
+
+
+def _position_from_entry(entry):
+    current_position = "Market" if entry[5] else "Cash"
+
+    if entry[9] == "GOLD":
+        current_position = "Gold"
+
+    return current_position
+
+
+def _allocation_from_signals(indicator, tips_signal, gold_signal):
+    if tips_signal == SELL and gold_signal == BUY:
+        return "GOLD"
+
+    if indicator == BUY:
+        return "MARKET"
+
+    return "CASH"
+
+
 def spy_tips_cool():
     for i in range(TRY_COUNT):
         try:
@@ -109,6 +137,7 @@ def spy_tips_cool():
             time.sleep(2)
         else:
             break
+
     else:
         return (
             "Error",
@@ -173,6 +202,7 @@ def spy_tips_cool():
 
             if consecutive_days >= COOLDOWN_DAYS:
                 break
+
         else:
             print("Could not find a continuous sequence of cooldown days.")
             return (
@@ -222,14 +252,10 @@ def spy_tips_cool():
 
                     indicator = SELL
 
-                allocation = (
-                    "GOLD"
-                    if tips_signal == SELL and gold_signal == BUY
-                    else (
-                        "MARKET"
-                        if indicator == BUY
-                        else "CASH"
-                    )
+                allocation = _allocation_from_signals(
+                    indicator,
+                    tips_signal,
+                    gold_signal
                 )
 
                 f.write(
@@ -254,20 +280,10 @@ def spy_tips_cool():
         if last_entry[0] == str(spy_close.index[-1]):
             print("Already checked today")
 
-            last_entry_parsed = (
-                [last_entry[0]]
-                + [float(x) for x in last_entry[1:5]]
-                + [last_entry[5] == "True", int(last_entry[6])]
-                + [float(last_entry[7]), float(last_entry[8]), last_entry[9].strip()]
-            )
-
-            current_position = "Market" if last_entry_parsed[5] else "Cash"
-
-            if last_entry_parsed[9] == "GOLD":
-                current_position = "Gold"
+            last_entry_parsed = _parse_history_entry(last_entry)
 
             text = _build_message(
-                current_position=current_position,
+                current_position=_position_from_entry(last_entry_parsed),
                 cooldown=last_entry_parsed[6],
                 spy_diff=spy_diff,
                 tips_diff=tips_diff,
@@ -281,39 +297,31 @@ def spy_tips_cool():
 
         last_date = pd.to_datetime(last_entry[0])
 
-valid_dates_after_last_entry = spy_close.index[spy_close.index > last_date]
+        valid_dates_after_last_entry = (
+            spy_close.index[spy_close.index > last_date]
+        )
 
-if len(valid_dates_after_last_entry) == 0:
-    print("No new valid trading day after last history entry")
+        if len(valid_dates_after_last_entry) == 0:
+            print("No new valid trading day after last history entry")
 
-    last_entry_parsed = (
-        [last_entry[0]]
-        + [float(x) for x in last_entry[1:5]]
-        + [last_entry[5] == "True", int(last_entry[6])]
-        + [float(last_entry[7]), float(last_entry[8]), last_entry[9].strip()]
-    )
+            last_entry_parsed = _parse_history_entry(last_entry)
 
-    current_position = "Market" if last_entry_parsed[5] else "Cash"
+            text = _build_message(
+                current_position=_position_from_entry(last_entry_parsed),
+                cooldown=last_entry_parsed[6],
+                spy_diff=spy_diff,
+                tips_diff=tips_diff,
+                gold_diff=gold_diff,
+                usd_info_available=usd_info_available,
+                spy_usd_diff=spy_usd_diff,
+                tips_usd_diff=tips_usd_diff
+            )
 
-    if last_entry_parsed[9] == "GOLD":
-        current_position = "Gold"
+            return "Daily Notification", None, text
 
-    text = _build_message(
-        current_position=current_position,
-        cooldown=last_entry_parsed[6],
-        spy_diff=spy_diff,
-        tips_diff=tips_diff,
-        gold_diff=gold_diff,
-        usd_info_available=usd_info_available,
-        spy_usd_diff=spy_usd_diff,
-        tips_usd_diff=tips_usd_diff
-    )
-
-    return "Daily Notification", None, text
-
-first_new_date = valid_dates_after_last_entry[0]
-last_index = spy_close.index.get_loc(first_new_date)
-last_rev_index = last_index - len(spy_close) - 1
+        first_new_date = valid_dates_after_last_entry[0]
+        last_index = spy_close.index.get_loc(first_new_date)
+        last_rev_index = last_index - len(spy_close) - 1
 
         cooldown = int(last_entry[6])
         indicator = BUY if last_entry[5] == "True" else SELL
@@ -357,14 +365,10 @@ last_rev_index = last_index - len(spy_close) - 1
 
                 indicator = SELL
 
-            allocation = (
-                "GOLD"
-                if tips_signal == SELL and gold_signal == BUY
-                else (
-                    "MARKET"
-                    if indicator == BUY
-                    else "CASH"
-                )
+            allocation = _allocation_from_signals(
+                indicator,
+                tips_signal,
+                gold_signal
             )
 
             with open(fileName, "a") as f:
@@ -386,31 +390,17 @@ last_rev_index = last_index - len(spy_close) - 1
 
     new_entry = file_c[-1].split(",")
 
-    new_entry = (
-        [new_entry[0]]
-        + [float(x) for x in new_entry[1:5]]
-        + [new_entry[5] == "True", int(new_entry[6])]
-        + [float(new_entry[7]), float(new_entry[8]), new_entry[9].strip()]
-    )
+    new_entry = _parse_history_entry(new_entry)
 
     allocation = new_entry[9]
-    current_position = "Market" if new_entry[5] else "Cash"
-
-    if allocation == "GOLD":
-        current_position = "Gold"
 
     subject = ""
     subject2 = ""
 
     if last_entry is not None:
-        last_entry = (
-            [last_entry[0]]
-            + [float(x) for x in last_entry[1:5]]
-            + [last_entry[5] == "True", int(last_entry[6])]
-            + [float(last_entry[7]), float(last_entry[8]), last_entry[9].strip()]
-        )
+        last_entry_parsed = _parse_history_entry(last_entry)
 
-        previous_allocation = last_entry[9]
+        previous_allocation = last_entry_parsed[9]
 
         if allocation != previous_allocation:
             if allocation == "MARKET":
@@ -433,7 +423,7 @@ last_rev_index = last_index - len(spy_close) - 1
             subject = "GO IN GOLD NOW"
 
     text = _build_message(
-        current_position=current_position,
+        current_position=_position_from_entry(new_entry),
         cooldown=new_entry[6],
         spy_diff=spy_diff,
         tips_diff=tips_diff,
