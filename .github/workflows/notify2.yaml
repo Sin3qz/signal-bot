@@ -62,9 +62,12 @@ jobs:
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
 
-          git pull --rebase origin main
-
           git add .
-          git commit -m "Update current indicator data [ci skip]" || echo "No changes to commit"
+
+          git diff --cached --quiet && echo "No changes to commit" && exit 0
+
+          git commit -m "Update current indicator data [ci skip]"
+
+          git pull --rebase origin main
 
           git push origin main
