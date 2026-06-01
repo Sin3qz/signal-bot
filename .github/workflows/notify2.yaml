@@ -31,7 +31,7 @@ jobs:
           rm -f message.txt
           python3 main.py
 
-            - name: Send Discord notification
+      - name: Send Discord notification
         run: |
           if [ -z "$DISCORD_WEBHOOK_URL" ]; then
             echo "DISCORD_WEBHOOK_URL secret is missing or empty."
