@@ -31,7 +31,7 @@ jobs:
           rm -f message.txt
           python3 main.py
 
-      - name: Send Discord notification
+            - name: Send Discord notification
         run: |
           if [ -z "$DISCORD_WEBHOOK_URL" ]; then
             echo "DISCORD_WEBHOOK_URL secret is missing or empty."
@@ -49,6 +49,8 @@ jobs:
             echo "message.txt is empty. Nothing to send."
             exit 0
           fi
+
+          MESSAGE="${MESSAGE:0:1900}"
 
           jq -n --arg content "$MESSAGE" '{content: $content}' > payload.json
 
