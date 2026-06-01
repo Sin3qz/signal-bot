@@ -280,8 +280,40 @@ def spy_tips_cool():
             return "Daily Notification", None, text
 
         last_date = pd.to_datetime(last_entry[0])
-        last_index = spy_close.index.get_loc(last_date)
-        last_rev_index = last_index - len(spy_close)
+
+valid_dates_after_last_entry = spy_close.index[spy_close.index > last_date]
+
+if len(valid_dates_after_last_entry) == 0:
+    print("No new valid trading day after last history entry")
+
+    last_entry_parsed = (
+        [last_entry[0]]
+        + [float(x) for x in last_entry[1:5]]
+        + [last_entry[5] == "True", int(last_entry[6])]
+        + [float(last_entry[7]), float(last_entry[8]), last_entry[9].strip()]
+    )
+
+    current_position = "Market" if last_entry_parsed[5] else "Cash"
+
+    if last_entry_parsed[9] == "GOLD":
+        current_position = "Gold"
+
+    text = _build_message(
+        current_position=current_position,
+        cooldown=last_entry_parsed[6],
+        spy_diff=spy_diff,
+        tips_diff=tips_diff,
+        gold_diff=gold_diff,
+        usd_info_available=usd_info_available,
+        spy_usd_diff=spy_usd_diff,
+        tips_usd_diff=tips_usd_diff
+    )
+
+    return "Daily Notification", None, text
+
+first_new_date = valid_dates_after_last_entry[0]
+last_index = spy_close.index.get_loc(first_new_date)
+last_rev_index = last_index - len(spy_close) - 1
 
         cooldown = int(last_entry[6])
         indicator = BUY if last_entry[5] == "True" else SELL
