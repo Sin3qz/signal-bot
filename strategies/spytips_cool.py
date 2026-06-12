@@ -88,17 +88,6 @@ def _date_de(date_string):
         return str(date_string)
 
 
-def _load_status():
-    if not os.path.exists(STATUS_FILE):
-        return None
-
-    try:
-        with open(STATUS_FILE, "r") as f:
-            return json.load(f)
-    except Exception:
-        return None
-
-
 def _save_status(status):
     with open(STATUS_FILE, "w") as f:
         json.dump(status, f, indent=2)
@@ -133,40 +122,40 @@ def _build_signal_status(
     ticker,
     close,
     sma_rolling,
-    diff,
-    previous_status
+    diff
 ):
-    current_date = close.index[-1].strftime("%Y-%m-%d")
     expected_date = _expected_fresh_date()
 
-    current = float(close.iloc[-1])
-    sma_value = float(_last_valid(sma_rolling))
-    diff_pct = float(_last_valid(diff) * 100)
-
-    previous_signal_status = None
-
-    if previous_status and "signals" in previous_status:
-        previous_signal_status = previous_status["signals"].get(key)
+    current_date = close.index[-1].strftime("%Y-%m-%d")
+    previous_date = close.index[-2].strftime("%Y-%m-%d") if len(close) >= 2 else None
 
     current_status = {
         "key": key,
         "name": name,
         "ticker": ticker,
         "currentDate": current_date,
+        "previousDate": previous_date,
         "expectedDate": expected_date,
-        "current": current,
-        "sma": sma_value,
-        "diffPct": diff_pct
+        "current": float(close.iloc[-1]),
+        "sma": float(sma_rolling.iloc[-1]),
+        "diffPct": float(diff.iloc[-1] * 100)
     }
 
-    plausible_date = current_date >= expected_date
-    value_changed = _has_value_changed(
-        current_status,
-        previous_signal_status
-    )
+    previous_status = None
 
+    if len(close) >= 2:
+        previous_status = {
+            "current": float(close.iloc[-2]),
+            "sma": float(sma_rolling.iloc[-2]),
+            "diffPct": float(diff.iloc[-2] * 100)
+        }
+
+    plausible_date = current_date >= expected_date
+    value_changed = _has_value_changed(current_status, previous_status)
+
+    current_status["plausibleDate"] = plausible_date
     current_status["valueChanged"] = value_changed
-    current_status["fresh"] = plausible_date or value_changed
+    current_status["fresh"] = plausible_date and value_changed
 
     return current_status
 
@@ -176,6 +165,13 @@ def _status_icon(status):
         return "✅"
 
     return "❌"
+
+
+def _status_date(status):
+    if not status:
+        return "-"
+
+    return _date_de(status.get("currentDate"))
 
 
 def _parse_history_entry(entry):
@@ -231,19 +227,19 @@ def _build_message(
     text += (
         f"SPY EUR-hedged:  {_status_icon(spy_status)} "
         f"{_last_valid(spy_diff):+.2%}\n"
-        f"Kursdatum: {_date_de(spy_status.get('currentDate'))}\n\n"
+        f"Kursdatum: {_status_date(spy_status)}\n\n"
     )
 
     text += (
         f"TIPS EUR-hedged: {_status_icon(tips_status)} "
         f"{_last_valid(tips_diff):+.2%}\n"
-        f"Kursdatum: {_date_de(tips_status.get('currentDate'))}\n\n"
+        f"Kursdatum: {_status_date(tips_status)}\n\n"
     )
 
     text += (
         f"GOLD:             {_status_icon(gold_status)} "
         f"{_last_valid(gold_diff):+.2%}\n"
-        f"Kursdatum: {_date_de(gold_status.get('currentDate'))}\n"
+        f"Kursdatum: {_status_date(gold_status)}\n"
     )
 
     if usd_info_available:
@@ -252,13 +248,13 @@ def _build_message(
         text += (
             f"SPY USD:          {_status_icon(spy_usd_status)} "
             f"{_last_valid(spy_usd_diff):+.2%}\n"
-            f"Kursdatum: {_date_de(spy_usd_status.get('currentDate'))}\n\n"
+            f"Kursdatum: {_status_date(spy_usd_status)}\n\n"
         )
 
         text += (
             f"TIPS USD:         {_status_icon(tips_usd_status)} "
             f"{_last_valid(tips_usd_diff):+.2%}\n"
-            f"Kursdatum: {_date_de(tips_usd_status.get('currentDate'))}\n"
+            f"Kursdatum: {_status_date(tips_usd_status)}\n"
         )
 
     return text
@@ -291,8 +287,6 @@ def spy_tips_cool():
             "Failed to download data from Yahoo Finance after multiple attempts.",
             "Please try again later manually"
         )
-
-    previous_status = _load_status()
 
     spy_close = _prepare_close(spy_eur)
     tips_close = _prepare_close(tips_eur)
@@ -342,8 +336,7 @@ def spy_tips_cool():
         SPY_EUR_TICKER,
         spy_close,
         spy_sma_rolling,
-        spy_diff,
-        previous_status
+        spy_diff
     )
 
     signal_status["signals"]["tips_eur"] = _build_signal_status(
@@ -352,8 +345,7 @@ def spy_tips_cool():
         TIPS_EUR_TICKER,
         tips_close,
         tips_sma_rolling,
-        tips_diff,
-        previous_status
+        tips_diff
     )
 
     signal_status["signals"]["gold"] = _build_signal_status(
@@ -362,8 +354,7 @@ def spy_tips_cool():
         GOLD_TICKER,
         gold_close,
         gold_sma_rolling,
-        gold_diff,
-        previous_status
+        gold_diff
     )
 
     if usd_info_available:
@@ -373,8 +364,7 @@ def spy_tips_cool():
             SPY_USD_TICKER,
             spy_usd_close,
             spy_usd_sma_rolling,
-            spy_usd_diff,
-            previous_status
+            spy_usd_diff
         )
 
         signal_status["signals"]["tips_usd"] = _build_signal_status(
@@ -383,8 +373,7 @@ def spy_tips_cool():
             TIPS_USD_TICKER,
             tips_usd_close,
             tips_usd_sma_rolling,
-            tips_usd_diff,
-            previous_status
+            tips_usd_diff
         )
 
     signal_status["needsRetry"] = any(
