@@ -26,7 +26,67 @@ jobs:
         run: |
           pip install pandas yahooquery numpy
 
-      - name: Run bot
+      - name: Run first attempt
+        run: |
+          rm -f message.txt
+          python3 main.py
+
+      - name: Check retry after first attempt
+        id: retry1
+        run: |
+          NEEDS_RETRY=$(python3 - <<'PY'
+          import json
+          import os
+
+          if not os.path.exists("letsgo_status.json"):
+              print("false")
+          else:
+              with open("letsgo_status.json", "r") as f:
+                  data = json.load(f)
+              print("true" if data.get("needsRetry") else "false")
+          PY
+          )
+
+          echo "needs_retry=$NEEDS_RETRY" >> "$GITHUB_OUTPUT"
+          echo "Retry needed after first attempt: $NEEDS_RETRY"
+
+      - name: Wait before second attempt
+        if: steps.retry1.outputs.needs_retry == 'true'
+        run: |
+          sleep 3600
+
+      - name: Run second attempt
+        if: steps.retry1.outputs.needs_retry == 'true'
+        run: |
+          rm -f message.txt
+          python3 main.py
+
+      - name: Check retry after second attempt
+        id: retry2
+        run: |
+          NEEDS_RETRY=$(python3 - <<'PY'
+          import json
+          import os
+
+          if not os.path.exists("letsgo_status.json"):
+              print("false")
+          else:
+              with open("letsgo_status.json", "r") as f:
+                  data = json.load(f)
+              print("true" if data.get("needsRetry") else "false")
+          PY
+          )
+
+          echo "needs_retry=$NEEDS_RETRY" >> "$GITHUB_OUTPUT"
+          echo "Retry needed after second attempt: $NEEDS_RETRY"
+
+      - name: Wait before third attempt
+        if: steps.retry2.outputs.needs_retry == 'true'
+        run: |
+          sleep 3600
+
+      - name: Run third attempt
+        if: steps.retry2.outputs.needs_retry == 'true'
         run: |
           rm -f message.txt
           python3 main.py
