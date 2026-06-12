@@ -1,4 +1,5 @@
 import os
+import json
 import pandas as pd
 import yahooquery as yq
 from .constants import *
@@ -12,6 +13,8 @@ GOLD_TICKER = "4GLD.DE"
 
 SPY_USD_TICKER = "^SP500TR"
 TIPS_USD_TICKER = "TIP"
+
+STATUS_FILE = "letsgo_status.json"
 
 
 def _download_history(ticker):
@@ -62,31 +65,117 @@ def _last_valid(series):
     return clean.iloc[-1]
 
 
-def _build_message(
-    current_position,
-    cooldown,
-    spy_diff,
-    tips_diff,
-    gold_diff,
-    usd_info_available,
-    spy_usd_diff,
-    tips_usd_diff
+def _last_weekday_on_or_before(date_value):
+    d = pd.Timestamp(date_value)
+
+    while d.weekday() >= 5:
+        d = d - pd.Timedelta(days=1)
+
+    return d.strftime("%Y-%m-%d")
+
+
+def _expected_fresh_date():
+    berlin_today = pd.Timestamp.now(tz="Europe/Berlin").date()
+    berlin_yesterday = berlin_today - pd.Timedelta(days=1)
+
+    return _last_weekday_on_or_before(berlin_yesterday)
+
+
+def _date_de(date_string):
+    try:
+        return pd.to_datetime(date_string).strftime("%d.%m.%Y")
+    except Exception:
+        return str(date_string)
+
+
+def _load_status():
+    if not os.path.exists(STATUS_FILE):
+        return None
+
+    try:
+        with open(STATUS_FILE, "r") as f:
+            return json.load(f)
+    except Exception:
+        return None
+
+
+def _save_status(status):
+    with open(STATUS_FILE, "w") as f:
+        json.dump(status, f, indent=2)
+
+
+def _has_value_changed(current_status, previous_status):
+    if not previous_status:
+        return False
+
+    fields = [
+        "current",
+        "sma",
+        "diffPct"
+    ]
+
+    for field in fields:
+        if (
+            field in current_status
+            and field in previous_status
+            and isinstance(current_status[field], (int, float))
+            and isinstance(previous_status[field], (int, float))
+        ):
+            if abs(current_status[field] - previous_status[field]) > 0.000001:
+                return True
+
+    return False
+
+
+def _build_signal_status(
+    key,
+    name,
+    ticker,
+    close,
+    sma_rolling,
+    diff,
+    previous_status
 ):
-    text = (
-        f"Currently in: {current_position} "
-        f"({cooldown} cooldown days remaining)\n\n"
+    current_date = close.index[-1].strftime("%Y-%m-%d")
+    expected_date = _expected_fresh_date()
+
+    current = float(close.iloc[-1])
+    sma_value = float(_last_valid(sma_rolling))
+    diff_pct = float(_last_valid(diff) * 100)
+
+    previous_signal_status = None
+
+    if previous_status and "signals" in previous_status:
+        previous_signal_status = previous_status["signals"].get(key)
+
+    current_status = {
+        "key": key,
+        "name": name,
+        "ticker": ticker,
+        "currentDate": current_date,
+        "expectedDate": expected_date,
+        "current": current,
+        "sma": sma_value,
+        "diffPct": diff_pct
+    }
+
+    plausible_date = current_date >= expected_date
+    value_changed = _has_value_changed(
+        current_status,
+        previous_signal_status
     )
 
-    text += f"SPY EUR-hedged:  {_last_valid(spy_diff):+.2%}\n"
-    text += f"TIPS EUR-hedged: {_last_valid(tips_diff):+.2%}\n"
-    text += f"GOLD:             {_last_valid(gold_diff):+.2%}\n"
+    current_status["valueChanged"] = value_changed
+    current_status["fresh"] = plausible_date or value_changed
 
-    if usd_info_available:
-        text += "\nUSD-based signals:\n"
-        text += f"SPY USD:          {_last_valid(spy_usd_diff):+.2%}\n"
-        text += f"TIPS USD:         {_last_valid(tips_usd_diff):+.2%}\n"
+    return current_status
 
-    return text
+
+def _status_icon(status):
+    if status and status.get("fresh"):
+        return "✅"
+
+    return "❌"
 
 
 def _parse_history_entry(entry):
@@ -117,6 +206,64 @@ def _allocation_from_signals(indicator, tips_signal, gold_signal):
     return "CASH"
 
 
+def _build_message(
+    current_position,
+    cooldown,
+    spy_diff,
+    tips_diff,
+    gold_diff,
+    usd_info_available,
+    spy_usd_diff,
+    tips_usd_diff,
+    signal_status
+):
+    spy_status = signal_status["signals"].get("spy_eur")
+    tips_status = signal_status["signals"].get("tips_eur")
+    gold_status = signal_status["signals"].get("gold")
+    spy_usd_status = signal_status["signals"].get("spy_usd")
+    tips_usd_status = signal_status["signals"].get("tips_usd")
+
+    text = (
+        f"Currently in: {current_position} "
+        f"({cooldown} cooldown days remaining)\n\n"
+    )
+
+    text += (
+        f"SPY EUR-hedged:  {_status_icon(spy_status)} "
+        f"{_last_valid(spy_diff):+.2%}\n"
+        f"Kursdatum: {_date_de(spy_status.get('currentDate'))}\n\n"
+    )
+
+    text += (
+        f"TIPS EUR-hedged: {_status_icon(tips_status)} "
+        f"{_last_valid(tips_diff):+.2%}\n"
+        f"Kursdatum: {_date_de(tips_status.get('currentDate'))}\n\n"
+    )
+
+    text += (
+        f"GOLD:             {_status_icon(gold_status)} "
+        f"{_last_valid(gold_diff):+.2%}\n"
+        f"Kursdatum: {_date_de(gold_status.get('currentDate'))}\n"
+    )
+
+    if usd_info_available:
+        text += "\nUSD-based signals:\n"
+
+        text += (
+            f"SPY USD:          {_status_icon(spy_usd_status)} "
+            f"{_last_valid(spy_usd_diff):+.2%}\n"
+            f"Kursdatum: {_date_de(spy_usd_status.get('currentDate'))}\n\n"
+        )
+
+        text += (
+            f"TIPS USD:         {_status_icon(tips_usd_status)} "
+            f"{_last_valid(tips_usd_diff):+.2%}\n"
+            f"Kursdatum: {_date_de(tips_usd_status.get('currentDate'))}\n"
+        )
+
+    return text
+
+
 def spy_tips_cool():
     for i in range(TRY_COUNT):
         try:
@@ -145,6 +292,8 @@ def spy_tips_cool():
             "Please try again later manually"
         )
 
+    previous_status = _load_status()
+
     spy_close = _prepare_close(spy_eur)
     tips_close = _prepare_close(tips_eur)
     gold_close = _prepare_close(gold)
@@ -153,12 +302,27 @@ def spy_tips_cool():
     tips_sma_rolling, tips_diff = _diff_to_sma(tips_close, TIPS_SMA)
     gold_sma_rolling, gold_diff = _diff_to_sma(gold_close, SPY_SMA)
 
+    usd_info_available = False
+    spy_usd_diff = None
+    tips_usd_diff = None
+    spy_usd_close = None
+    tips_usd_close = None
+    spy_usd_sma_rolling = None
+    tips_usd_sma_rolling = None
+
     try:
         spy_usd_close = _prepare_close(spy_usd)
         tips_usd_close = _prepare_close(tips_usd)
 
-        _, spy_usd_diff = _diff_to_sma(spy_usd_close, SPY_SMA)
-        _, tips_usd_diff = _diff_to_sma(tips_usd_close, TIPS_SMA)
+        spy_usd_sma_rolling, spy_usd_diff = _diff_to_sma(
+            spy_usd_close,
+            SPY_SMA
+        )
+
+        tips_usd_sma_rolling, tips_usd_diff = _diff_to_sma(
+            tips_usd_close,
+            TIPS_SMA
+        )
 
         usd_info_available = True
 
@@ -166,6 +330,69 @@ def spy_tips_cool():
         usd_info_available = False
         spy_usd_diff = None
         tips_usd_diff = None
+
+    signal_status = {
+        "updated": pd.Timestamp.now(tz="Europe/Berlin").isoformat(),
+        "signals": {}
+    }
+
+    signal_status["signals"]["spy_eur"] = _build_signal_status(
+        "spy_eur",
+        "SPY EUR-hedged",
+        SPY_EUR_TICKER,
+        spy_close,
+        spy_sma_rolling,
+        spy_diff,
+        previous_status
+    )
+
+    signal_status["signals"]["tips_eur"] = _build_signal_status(
+        "tips_eur",
+        "TIPS EUR-hedged",
+        TIPS_EUR_TICKER,
+        tips_close,
+        tips_sma_rolling,
+        tips_diff,
+        previous_status
+    )
+
+    signal_status["signals"]["gold"] = _build_signal_status(
+        "gold",
+        "Gold",
+        GOLD_TICKER,
+        gold_close,
+        gold_sma_rolling,
+        gold_diff,
+        previous_status
+    )
+
+    if usd_info_available:
+        signal_status["signals"]["spy_usd"] = _build_signal_status(
+            "spy_usd",
+            "SPY USD",
+            SPY_USD_TICKER,
+            spy_usd_close,
+            spy_usd_sma_rolling,
+            spy_usd_diff,
+            previous_status
+        )
+
+        signal_status["signals"]["tips_usd"] = _build_signal_status(
+            "tips_usd",
+            "TIPS USD",
+            TIPS_USD_TICKER,
+            tips_usd_close,
+            tips_usd_sma_rolling,
+            tips_usd_diff,
+            previous_status
+        )
+
+    signal_status["needsRetry"] = any(
+        not s.get("fresh", False)
+        for s in signal_status["signals"].values()
+    )
+
+    _save_status(signal_status)
 
     fileName = (
         HISTORY_FILENAME
@@ -290,7 +517,8 @@ def spy_tips_cool():
                 gold_diff=gold_diff,
                 usd_info_available=usd_info_available,
                 spy_usd_diff=spy_usd_diff,
-                tips_usd_diff=tips_usd_diff
+                tips_usd_diff=tips_usd_diff,
+                signal_status=signal_status
             )
 
             return "Daily Notification", None, text
@@ -314,7 +542,8 @@ def spy_tips_cool():
                 gold_diff=gold_diff,
                 usd_info_available=usd_info_available,
                 spy_usd_diff=spy_usd_diff,
-                tips_usd_diff=tips_usd_diff
+                tips_usd_diff=tips_usd_diff,
+                signal_status=signal_status
             )
 
             return "Daily Notification", None, text
@@ -430,7 +659,8 @@ def spy_tips_cool():
         gold_diff=gold_diff,
         usd_info_available=usd_info_available,
         spy_usd_diff=spy_usd_diff,
-        tips_usd_diff=tips_usd_diff
+        tips_usd_diff=tips_usd_diff,
+        signal_status=signal_status
     )
 
     if DAILY_NOTIFICATION and subject == "":
