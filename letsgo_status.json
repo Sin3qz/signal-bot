@@ -1,16 +1,18 @@
 {
-  "updated": "2026-06-12T12:03:28.722596+02:00",
+  "updated": "2026-06-12T14:55:47.749546+02:00",
   "signals": {
     "spy_eur": {
       "key": "spy_eur",
       "name": "SPY EUR-hedged",
       "ticker": "IBCF.DE",
       "currentDate": "2026-06-11",
+      "previousDate": "2026-06-10",
       "expectedDate": "2026-06-11",
       "current": 149.85499572753906,
       "sma": 143.69296712239583,
       "diffPct": 4.288329991748655,
-      "valueChanged": false,
+      "plausibleDate": true,
+      "valueChanged": true,
       "fresh": true
     },
     "tips_eur": {
@@ -18,11 +20,13 @@
       "name": "TIPS EUR-hedged",
       "ticker": "IBC5.DE",
       "currentDate": "2026-06-11",
+      "previousDate": "2026-06-10",
       "expectedDate": "2026-06-11",
       "current": 5.393599987030029,
       "sma": 5.409842004776001,
       "diffPct": -0.3002309075132483,
-      "valueChanged": false,
+      "plausibleDate": true,
+      "valueChanged": true,
       "fresh": true
     },
     "gold": {
@@ -30,11 +34,13 @@
       "name": "Gold",
       "ticker": "4GLD.DE",
       "currentDate": "2026-06-11",
+      "previousDate": "2026-06-10",
       "expectedDate": "2026-06-11",
       "current": 113.87000274658203,
       "sma": 126.70466674804688,
       "diffPct": -10.129590591155308,
-      "valueChanged": false,
+      "plausibleDate": true,
+      "valueChanged": true,
       "fresh": true
     },
     "spy_usd": {
@@ -42,11 +48,13 @@
       "name": "SPY USD",
       "ticker": "^SP500TR",
       "currentDate": "2026-06-11",
+      "previousDate": "2026-06-10",
       "expectedDate": "2026-06-11",
       "current": 16529.439453125,
       "sma": 15483.807779947916,
       "diffPct": 6.753065447707342,
-      "valueChanged": false,
+      "plausibleDate": true,
+      "valueChanged": true,
       "fresh": true
     },
     "tips_usd": {
@@ -54,11 +62,13 @@
       "name": "TIPS USD",
       "ticker": "TIP",
       "currentDate": "2026-06-11",
+      "previousDate": "2026-06-10",
       "expectedDate": "2026-06-11",
       "current": 109.5999984741211,
-      "sma": 108.82911895751953,
-      "diffPct": 0.708339389297522,
-      "valueChanged": false,
+      "sma": 108.82911903381347,
+      "diffPct": 0.708339318696598,
+      "plausibleDate": true,
+      "valueChanged": true,
       "fresh": true
     }
   },
