@@ -1,16 +1,16 @@
 {
-  "updated": "2026-06-15T08:21:58.937015+02:00",
+  "updated": "2026-06-16T10:31:41.966990+02:00",
   "signals": {
     "spy_eur": {
       "key": "spy_eur",
       "name": "SPY EUR-hedged",
       "ticker": "IBCF.DE",
-      "currentDate": "2026-06-12",
-      "previousDate": "2026-06-11",
-      "expectedDate": "2026-06-12",
-      "current": 153.09500122070312,
-      "sma": 143.76523376464843,
-      "diffPct": 6.489585285499579,
+      "currentDate": "2026-06-15",
+      "previousDate": "2026-06-12",
+      "expectedDate": "2026-06-15",
+      "current": 155.55499267578125,
+      "sma": 143.8601336669922,
+      "diffPct": 8.129325832450803,
       "plausibleDate": true,
       "valueChanged": true,
       "fresh": true
@@ -19,12 +19,12 @@
       "key": "tips_eur",
       "name": "TIPS EUR-hedged",
       "ticker": "IBC5.DE",
-      "currentDate": "2026-06-12",
-      "previousDate": "2026-06-11",
-      "expectedDate": "2026-06-12",
-      "current": 5.4028000831604,
-      "sma": 5.409958004951477,
-      "diffPct": -0.13231011746348778,
+      "currentDate": "2026-06-15",
+      "previousDate": "2026-06-12",
+      "expectedDate": "2026-06-15",
+      "current": 5.410999774932861,
+      "sma": 5.410125002861023,
+      "diffPct": 0.016169165617715957,
       "plausibleDate": true,
       "valueChanged": true,
       "fresh": true
@@ -33,12 +33,12 @@
       "key": "gold",
       "name": "Gold",
       "ticker": "4GLD.DE",
-      "currentDate": "2026-06-12",
-      "previousDate": "2026-06-11",
-      "expectedDate": "2026-06-12",
-      "current": 117.20999908447266,
-      "sma": 126.74206675211589,
-      "diffPct": -7.520839695857413,
+      "currentDate": "2026-06-15",
+      "previousDate": "2026-06-12",
+      "expectedDate": "2026-06-15",
+      "current": 120.66999816894531,
+      "sma": 126.80553339640299,
+      "diffPct": -4.838539031477094,
       "plausibleDate": true,
       "valueChanged": true,
       "fresh": true
@@ -49,13 +49,13 @@
       "ticker": "^SP500TR",
       "currentDate": "2026-06-12",
       "previousDate": "2026-06-11",
-      "expectedDate": "2026-06-12",
+      "expectedDate": "2026-06-15",
       "current": 16613.30078125,
       "sma": 15494.045052083333,
       "diffPct": 7.22378000970232,
-      "plausibleDate": true,
+      "plausibleDate": false,
       "valueChanged": true,
-      "fresh": true
+      "fresh": false
     },
     "tips_usd": {
       "key": "tips_usd",
@@ -63,14 +63,14 @@
       "ticker": "TIP",
       "currentDate": "2026-06-12",
       "previousDate": "2026-06-11",
-      "expectedDate": "2026-06-12",
+      "expectedDate": "2026-06-15",
       "current": 109.61000061035156,
-      "sma": 108.8394620513916,
-      "diffPct": 0.7079588087233695,
-      "plausibleDate": true,
+      "sma": 108.83946182250976,
+      "diffPct": 0.7079590205052272,
+      "plausibleDate": false,
       "valueChanged": true,
-      "fresh": true
+      "fresh": false
     }
   },
-  "needsRetry": false
+  "needsRetry": true
 }
