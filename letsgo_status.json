@@ -1,5 +1,5 @@
 {
-  "updated": "2026-07-26T06:23:33.546168+02:00",
+  "updated": "2026-07-27T08:33:53.641470+02:00",
   "signals": {
     "spy_eur": {
       "key": "spy_eur",
@@ -47,30 +47,30 @@
       "key": "spy_usd",
       "name": "SPY USD",
       "ticker": "^SP500TR",
-      "currentDate": "2026-07-24",
-      "previousDate": "2026-07-23",
+      "currentDate": "2026-07-23",
+      "previousDate": "2026-07-22",
       "expectedDate": "2026-07-24",
-      "current": 16588.009765625,
-      "sma": 15806.089401041667,
-      "diffPct": 4.946956484579939,
-      "plausibleDate": true,
+      "current": 16578.279296875,
+      "sma": 15796.268802083334,
+      "diffPct": 4.950602604891913,
+      "plausibleDate": false,
       "valueChanged": true,
-      "fresh": true
+      "fresh": false
     },
     "tips_usd": {
       "key": "tips_usd",
       "name": "TIPS USD",
       "ticker": "TIP",
-      "currentDate": "2026-07-24",
-      "previousDate": "2026-07-23",
+      "currentDate": "2026-07-23",
+      "previousDate": "2026-07-22",
       "expectedDate": "2026-07-24",
-      "current": 107.5,
-      "sma": 107.9172887802124,
-      "diffPct": -0.38667463288691883,
-      "plausibleDate": true,
+      "current": 107.48999786376953,
+      "sma": 107.91472446441651,
+      "diffPct": -0.39357613407707426,
+      "plausibleDate": false,
       "valueChanged": true,
-      "fresh": true
+      "fresh": false
     }
   },
-  "needsRetry": false
+  "needsRetry": true
 }
