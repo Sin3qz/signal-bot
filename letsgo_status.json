@@ -1,5 +1,5 @@
 {
-  "updated": "2026-08-11T07:01:59.587114+02:00",
+  "updated": "2026-08-12T07:21:05.796301+02:00",
   "signals": {
     "spy_eur": {
       "key": "spy_eur",
@@ -7,13 +7,13 @@
       "ticker": "IBCF.DE",
       "currentDate": "2026-08-10",
       "previousDate": "2026-08-07",
-      "expectedDate": "2026-08-10",
+      "expectedDate": "2026-08-11",
       "current": 159.2899932861328,
       "sma": 147.38946695963543,
       "diffPct": 8.07420406083462,
-      "plausibleDate": true,
+      "plausibleDate": false,
       "valueChanged": true,
-      "fresh": true
+      "fresh": false
     },
     "tips_eur": {
       "key": "tips_eur",
@@ -21,13 +21,13 @@
       "ticker": "IBC5.DE",
       "currentDate": "2026-08-10",
       "previousDate": "2026-08-07",
-      "expectedDate": "2026-08-10",
+      "expectedDate": "2026-08-11",
       "current": 5.355000019073486,
       "sma": 5.4021510004997255,
       "diffPct": -0.8728186498651647,
-      "plausibleDate": true,
+      "plausibleDate": false,
       "valueChanged": true,
-      "fresh": true
+      "fresh": false
     },
     "gold": {
       "key": "gold",
@@ -35,24 +35,24 @@
       "ticker": "4GLD.DE",
       "currentDate": "2026-08-10",
       "previousDate": "2026-08-07",
-      "expectedDate": "2026-08-10",
+      "expectedDate": "2026-08-11",
       "current": 121.19999694824219,
       "sma": 126.61233342488607,
       "diffPct": -4.274730849862115,
-      "plausibleDate": true,
+      "plausibleDate": false,
       "valueChanged": true,
-      "fresh": true
+      "fresh": false
     },
     "spy_usd": {
       "key": "spy_usd",
       "name": "SPY USD",
       "ticker": "^SP500TR",
-      "currentDate": "2026-08-10",
-      "previousDate": "2026-08-07",
-      "expectedDate": "2026-08-10",
-      "current": 17356.689453125,
-      "sma": 15931.292337239584,
-      "diffPct": 8.947153097891086,
+      "currentDate": "2026-08-11",
+      "previousDate": "2026-08-10",
+      "expectedDate": "2026-08-11",
+      "current": 17301.41015625,
+      "sma": 15944.303203125,
+      "diffPct": 8.51154757806546,
       "plausibleDate": true,
       "valueChanged": true,
       "fresh": true
@@ -61,16 +61,16 @@
       "key": "tips_usd",
       "name": "TIPS USD",
       "ticker": "TIP",
-      "currentDate": "2026-08-10",
-      "previousDate": "2026-08-07",
-      "expectedDate": "2026-08-10",
-      "current": 106.86000061035156,
-      "sma": 107.131057472229,
-      "diffPct": -0.25301426894596357,
+      "currentDate": "2026-08-11",
+      "previousDate": "2026-08-10",
+      "expectedDate": "2026-08-11",
+      "current": 106.88999938964844,
+      "sma": 107.12804950714111,
+      "diffPct": -0.2222108202173587,
       "plausibleDate": true,
       "valueChanged": true,
       "fresh": true
     }
   },
-  "needsRetry": false
+  "needsRetry": true
 }
