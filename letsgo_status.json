@@ -1,47 +1,47 @@
 {
-  "updated": "2026-08-15T06:12:19.501832+02:00",
+  "updated": "2026-08-16T04:19:01.924329+02:00",
   "signals": {
     "spy_eur": {
       "key": "spy_eur",
       "name": "SPY EUR-hedged",
       "ticker": "IBCF.DE",
-      "currentDate": "2026-08-13",
-      "previousDate": "2026-08-12",
+      "currentDate": "2026-08-14",
+      "previousDate": "2026-08-13",
       "expectedDate": "2026-08-14",
-      "current": 159.88999938964844,
-      "sma": 147.69976684570312,
-      "diffPct": 8.253386450284673,
-      "plausibleDate": false,
+      "current": 159.7949981689453,
+      "sma": 147.8025334676107,
+      "diffPct": 8.113842449096207,
+      "plausibleDate": true,
       "valueChanged": true,
-      "fresh": false
+      "fresh": true
     },
     "tips_eur": {
       "key": "tips_eur",
       "name": "TIPS EUR-hedged",
       "ticker": "IBC5.DE",
-      "currentDate": "2026-08-13",
-      "previousDate": "2026-08-12",
+      "currentDate": "2026-08-14",
+      "previousDate": "2026-08-13",
       "expectedDate": "2026-08-14",
-      "current": 5.361800193786621,
-      "sma": 5.400645003318787,
-      "diffPct": -0.7192624123284359,
-      "plausibleDate": false,
+      "current": 5.350599765777588,
+      "sma": 5.400147001743317,
+      "diffPct": -0.9175164296404147,
+      "plausibleDate": true,
       "valueChanged": true,
-      "fresh": false
+      "fresh": true
     },
     "gold": {
       "key": "gold",
       "name": "Gold",
       "ticker": "4GLD.DE",
-      "currentDate": "2026-08-13",
-      "previousDate": "2026-08-12",
+      "currentDate": "2026-08-14",
+      "previousDate": "2026-08-13",
       "expectedDate": "2026-08-14",
-      "current": 121.66000366210938,
-      "sma": 126.58866678873697,
-      "diffPct": -3.893447376970177,
-      "plausibleDate": false,
+      "current": 121.83000183105469,
+      "sma": 126.55293345133464,
+      "diffPct": -3.731981149292073,
+      "plausibleDate": true,
       "valueChanged": true,
-      "fresh": false
+      "fresh": true
     },
     "spy_usd": {
       "key": "spy_usd",
@@ -65,12 +65,12 @@
       "previousDate": "2026-08-13",
       "expectedDate": "2026-08-14",
       "current": 106.98999786376953,
-      "sma": 107.87560523986816,
-      "diffPct": -0.8209524054390518,
+      "sma": 107.12442653656007,
+      "diffPct": -0.12548834765024908,
       "plausibleDate": true,
       "valueChanged": true,
       "fresh": true
     }
   },
-  "needsRetry": true
+  "needsRetry": false
 }
