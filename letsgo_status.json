@@ -1,5 +1,5 @@
 {
-  "updated": "2026-08-16T04:19:01.924329+02:00",
+  "updated": "2026-08-17T04:17:37.601287+02:00",
   "signals": {
     "spy_eur": {
       "key": "spy_eur",
@@ -65,8 +65,8 @@
       "previousDate": "2026-08-13",
       "expectedDate": "2026-08-14",
       "current": 106.98999786376953,
-      "sma": 107.12442653656007,
-      "diffPct": -0.12548834765024908,
+      "sma": 107.8756046295166,
+      "diffPct": -0.8209518442919143,
       "plausibleDate": true,
       "valueChanged": true,
       "fresh": true
